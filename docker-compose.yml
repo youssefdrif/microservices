@@ -1,0 +1,69 @@
+services:
+  auth_service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: auth_service
+    environment:
+      - MONGO_URI=mongodb://mongodb_auth/authdb
+      - JWT_SECRET=0c721f4d40809dcb0e626bd3e71d4d6552f61b02ad76950ac0f1b0c409d557f4
+      - PORT=8080
+    depends_on:
+      - mongodb_auth
+    develop:
+      watch:
+        - path: ./auth/
+          target: /usr/src/app/
+          action: sync
+        - path: ./auth/package.json
+          action: rebuild
+
+  apigateway:
+    build:
+      context: ./apigateway
+      dockerfile: Dockerfile
+    container_name: apigateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth_service
+    environment:
+      - PORT=3000
+    develop:
+      watch:
+        - path: ./apigateway/
+          target: /usr/src/app/
+          action: sync
+        - path: ./apigateway/package.json
+          action: rebuild
+    
+  product_service:
+    build:
+      context: ./products
+      dockerfile: Dockerfile
+    container_name: product_service
+    environment:
+      - MONGO_URI=mongodb://mongodb_products/productdb
+      - MONGO_SSL=false
+      - PORT=8082
+    depends_on:
+      - mongodb_products
+
+  mongodb_auth:
+    image: mongo:latest
+    container_name: mongodb_auth
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo-data:/data/db
+  
+  mongodb_products:
+    image: mongo:latest
+    container_name: mongodb_products
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
